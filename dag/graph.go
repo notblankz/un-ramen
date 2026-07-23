@@ -136,3 +136,58 @@ func (g *Graph) TopoSort() ([]string, error) {
 
 	return res, nil
 }
+
+func (g *Graph) Levels() ([][]string, error) {
+	indeg := make(map[string]int, len(g.nodes))
+	queue := make([]string, 0)
+	res := make([][]string, 0)
+
+	// populate the indeg map
+	for nodeID := range g.nodes {
+		indeg[nodeID] = 0
+	}
+
+	// now set the indeg of each node by traversing the adjacency list
+	for fromID := range g.nodes {
+		// get each node's edges
+		for _, toID := range g.edges[fromID] {
+			indeg[toID]++
+		}
+	}
+
+	// add all the 0 degree nodes to the queue for the first time
+	for nodeID, indegVal := range indeg {
+		if indegVal == 0 {
+			queue = append(queue, nodeID)
+		}
+	}
+
+	// sort the queue for determinstic output
+	sort.Strings(queue)
+	count := 0
+
+	for len(queue) != 0 {
+		// the queue always contains all the tasks that have 0 indeg
+		level := queue
+		queue = nil
+
+		res = append(res, level)
+		count += len(level)
+
+		for _, fromID := range level {
+			for _, toID := range g.edges[fromID] {
+				indeg[toID]--
+				if indeg[toID] == 0 {
+					queue = append(queue, toID)
+				}
+			}
+		}
+		sort.Strings(queue)
+	}
+
+	if count != len(g.nodes) {
+		return nil, fmt.Errorf("dag: cycle detected")
+	}
+
+	return res, nil
+}
